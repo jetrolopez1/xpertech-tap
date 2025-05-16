@@ -1,25 +1,43 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Home, Camera, Settings, Search, Plus } from 'lucide-react';
+import { Home, Camera, Settings, Search, Plus, ArrowRight } from 'lucide-react';
+
+interface ServiceCardProps { 
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  whatsappMessage: string;
+}
 
 const ServiceCard = ({ 
   title, 
   description, 
-  icon: Icon 
-}: { 
-  title: string;
-  description: string;
-  icon: React.ElementType;
-}) => {
+  icon: Icon,
+  whatsappMessage
+}: ServiceCardProps) => {
+  const encodedMessage = encodeURIComponent(`Hola, vengo de su sitio web, me interesa ${whatsappMessage}`);
+  const whatsappLink = `https://wa.me/529621765599?text=${encodedMessage}`;
+  
   return (
-    <Card className="bg-black/50 border border-gray-800 p-6 card-hover">
-      <div className="rounded-full bg-xpertech-yellow/10 w-14 h-14 flex items-center justify-center mb-4">
-        <Icon className="text-xpertech-yellow" size={24} />
-      </div>
-      <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-gray-400">{description}</p>
-    </Card>
+    <a 
+      href={whatsappLink}
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="block transition-transform hover:scale-105"
+    >
+      <Card className="bg-black/50 border border-gray-800 p-6 card-hover transition-all group">
+        <div className="rounded-full bg-xpertech-yellow/10 w-14 h-14 flex items-center justify-center mb-4 group-hover:bg-xpertech-yellow/20 transition-colors">
+          <Icon className="text-xpertech-yellow" size={24} />
+        </div>
+        <h3 className="text-xl font-bold mb-3">{title}</h3>
+        <p className="text-gray-400 mb-4">{description}</p>
+        <div className="flex items-center text-xpertech-cyan group-hover:translate-x-2 transition-transform">
+          <span className="mr-2">Cotizar</span>
+          <ArrowRight size={16} />
+        </div>
+      </Card>
+    </a>
   );
 };
 
@@ -28,27 +46,32 @@ const Services = () => {
     {
       title: 'Instalación de Cámaras',
       description: 'Instalación profesional de sistemas CCTV y videovigilancia para hogares y negocios.',
-      icon: Camera
+      icon: Camera,
+      whatsappMessage: 'instalar cámaras de videovigilancia.'
     },
     {
       title: 'Soporte Técnico',
       description: 'Servicio técnico especializado para equipos de cómputo, servidores y dispositivos electrónicos.',
-      icon: Settings
+      icon: Settings,
+      whatsappMessage: 'soporte técnico para mis equipos.'
     },
     {
       title: 'Venta de Equipos',
       description: 'Amplio catálogo de computadoras, laptops, accesorios y componentes de las mejores marcas.',
-      icon: Home
+      icon: Home,
+      whatsappMessage: 'comprar equipos de cómputo.'
     },
     {
       title: 'Servidores',
       description: 'Implementación y mantenimiento de infraestructura de servidores para empresas de todos los tamaños.',
-      icon: Search
+      icon: Search,
+      whatsappMessage: 'implementación de servidores para mi negocio.'
     },
     {
       title: 'Refacciones',
       description: 'Venta de refacciones originales y compatibles para equipos de cómputo y dispositivos electrónicos.',
-      icon: Plus
+      icon: Plus,
+      whatsappMessage: 'comprar refacciones para mis equipos.'
     }
   ];
 
