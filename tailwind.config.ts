@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -98,6 +97,10 @@ export default {
 				'float': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-10px)' }
+				},
+				'pulse-slow': {
+					'0%, 100%': { boxShadow: '0 0 15px rgba(0,255,255,0.5)' },
+					'50%': { boxShadow: '0 0 25px rgba(0,255,255,0.8)' }
 				}
 			},
 			animation: {
@@ -106,7 +109,8 @@ export default {
 				'fade-in-up': 'fade-in-up 0.5s ease-out',
 				'fade-in': 'fade-in 0.5s ease-out',
 				'pulse-light': 'pulse-light 2s ease-in-out infinite',
-				'float': 'float 3s ease-in-out infinite'
+				'float': 'float 3s ease-in-out infinite',
+				'pulse-slow': 'pulse-slow 3s ease-in-out infinite'
 			}
 		}
 	},

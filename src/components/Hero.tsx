@@ -13,7 +13,7 @@ const Hero = () => {
       </div>
 
       <div className="container mx-auto px-4 pt-20 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="animate-fade-in">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
               Soluciones de <span className="gradient-text">Videovigilancia y Tecnología</span>
@@ -43,13 +43,14 @@ const Hero = () => {
             </div>
           </div>
           <div className="flex justify-center">
-            <div className="relative animate-float">
-              <div className="w-72 h-72 md:w-96 md:h-96 bg-gradient-to-br from-xpertech-yellow to-xpertech-cyan rounded-full blur-lg opacity-20 animate-pulse"></div>
-              <img 
-                src="https://th.bing.com/th/id/OIP.HX4JoDkWaUyK2YUZ1vzxIwHaEK?rs=1&pid=ImgDetMain" 
-                alt="Sistema de videovigilancia" 
-                className="absolute inset-0 w-full h-full object-contain"
-              />
+            <div className="relative w-full max-w-md mx-auto">
+              <div className="rounded-lg overflow-hidden border-2 border-xpertech-cyan shadow-[0_0_15px_rgba(0,255,255,0.5)] animate-pulse-slow">
+                <img 
+                  src="https://th.bing.com/th/id/OIP.HX4JoDkWaUyK2YUZ1vzxIwHaEK?rs=1&pid=ImgDetMain" 
+                  alt="Sistema de videovigilancia" 
+                  className="w-full h-auto object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
