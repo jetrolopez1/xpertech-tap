@@ -101,6 +101,13 @@ export const storageOptionsSimplified: CameraOption[] = [
   { id: 'cloud', name: 'Almacenamiento en la nube', description: 'Respaldo seguro con acceso desde cualquier lugar', price: 500 }
 ];
 
+export const monitorOptions: CameraOption[] = [
+  { id: '19', name: '19"', price: 800 },
+  { id: '21', name: '21"', price: 1200 },
+  { id: '24', name: '24"', price: 1800 },
+  { id: '27', name: '27"', price: 2400 }
+];
+
 export interface QuoteFormData {
   cameraCount: number;
   cameraType: string;
@@ -121,6 +128,8 @@ export interface QuoteFormData {
   technologyType: string;
   physicalType: string;
   physicalTypes: string[]; // New: multiple physical types
+  needsMonitor: string;
+  monitorSize: string;
 }
 
 export const calculateQuote = (formData: QuoteFormData): { 
@@ -271,6 +280,20 @@ export const calculateQuote = (formData: QuoteFormData): {
       unitPrice: selectedRemoteAccess.price,
       total: selectedRemoteAccess.price
     });
+  }
+
+  // Monitor
+  if (formData.needsMonitor === 'yes' && formData.monitorSize) {
+    const selectedMonitor = monitorOptions.find(monitor => monitor.id === formData.monitorSize);
+    if (selectedMonitor && selectedMonitor.price) {
+      total += selectedMonitor.price;
+      details.push({
+        item: `Monitor ${selectedMonitor.name}`,
+        quantity: 1,
+        unitPrice: selectedMonitor.price,
+        total: selectedMonitor.price
+      });
+    }
   }
 
   const subtotal = total;

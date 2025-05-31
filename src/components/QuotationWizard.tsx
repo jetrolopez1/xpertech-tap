@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowRight, Check, Home, CloudRain, Camera, Disc, Smartphone, MapPin } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Home, CloudRain, Camera, Disc, Smartphone, MapPin, Monitor, Wifi } from 'lucide-react';
 
 import { 
   cameraTypes, 
@@ -33,7 +32,6 @@ const QuotationWizard = () => {
     recording: '',
     remoteAccess: '',
     hasDvr: '',
-    needsCabling: '',
     installationService: '',
     cableLength: 10,
     storage: '',
@@ -44,7 +42,9 @@ const QuotationWizard = () => {
     nightVisionType: '',
     technologyType: '',
     physicalType: '',
-    physicalTypes: []
+    physicalTypes: [],
+    needsMonitor: '',
+    monitorSize: ''
   });
   
   const [quotationResult, setQuotationResult] = useState<ReturnType<typeof calculateQuote> | null>(null);
@@ -57,6 +57,7 @@ const QuotationWizard = () => {
     'Resolución',
     'Sistema de Grabación',
     'Acceso Remoto',
+    'Monitor',
     'Instalación',
     'Datos',
     'Cotización'
@@ -169,6 +170,8 @@ const QuotationWizard = () => {
         return value === 'yes' ? 'Sí' : 'No';
       case 'remoteAccess':
         return value === 'yes' ? 'Sí' : 'No';
+      case 'needsMonitor':
+        return value === 'yes' ? 'Sí' : 'No';
       case 'hasDvr':
         return value === 'yes' ? 'Ya tengo equipo' : 'Necesito equipo nuevo';
       case 'installationService':
@@ -193,8 +196,11 @@ const QuotationWizard = () => {
     message += `\n- Tecnología: ${getSpanishValue('technologyType', formData.technologyType)}`;
     message += `\n- Tipos físicos: ${getSpanishValue('physicalTypes', '')}`;
     message += `\n- Resolución: ${resolutions.find(res => res.id === formData.resolution)?.name || formData.resolution}`;
-    message += `\n- Grabación: ${getSpanishValue('recording', formData.recording)}`;
     message += `\n- Acceso Remoto: ${getSpanishValue('remoteAccess', formData.remoteAccess)}`;
+    message += `\n- Monitor: ${getSpanishValue('needsMonitor', formData.needsMonitor)}`;
+    if (formData.needsMonitor === 'yes' && formData.monitorSize) {
+      message += ` (${formData.monitorSize})`;
+    }
     message += `\n- DVR/NVR: ${getSpanishValue('hasDvr', formData.hasDvr)}`;
     message += `\n- Instalación: ${getSpanishValue('installationService', formData.installationService)}`;
     if ((formData.installationService === 'complete' || formData.installationService === 'accessories') && formData.cableLength) {
@@ -359,10 +365,38 @@ const QuotationWizard = () => {
             <p className="text-gray-400">Selecciona uno o varios tipos que mejor se adapten al lugar (WiFi es exclusivo)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { id: 'bullet', name: 'Bullet', desc: 'Forma cilíndrica, ideal para exteriores, fácil instalación en paredes', cost: '$$', icon: <Camera className="h-5 w-5" /> },
-                { id: 'dome', name: 'Domo', desc: 'Diseño discreto y elegante, perfecto para interiores, difícil de detectar dirección', cost: '$$', icon: <div className="h-5 w-5 rounded-full border-2 border-current"></div> },
-                { id: 'ptz', name: 'PTZ', desc: 'Se mueve y hace zoom automático, cubre áreas grandes con seguimiento', cost: '$$$$', icon: <div className="h-5 w-5 relative"><Camera className="h-5 w-5" /><ArrowRight className="h-3 w-3 absolute -top-1 -right-1" /></div> },
-                { id: 'wifi', name: 'WiFi', desc: 'Sin cables de video, instalación rápida, requiere buena señal WiFi', cost: '$$$', icon: <div className="h-5 w-5 flex items-center justify-center"><div className="w-3 h-3 border border-current rounded"></div></div> }
+                { 
+                  id: 'bullet', 
+                  name: 'Bullet', 
+                  desc: 'Forma cilíndrica, ideal para exteriores, fácil instalación en paredes', 
+                  cost: '$$', 
+                  icon: <Camera className="h-5 w-5" /> 
+                },
+                { 
+                  id: 'dome', 
+                  name: 'Domo', 
+                  desc: 'Diseño discreto y elegante, perfecto para interiores, difícil de detectar dirección', 
+                  cost: '$$', 
+                  icon: <div className="h-5 w-5 rounded-full border-2 border-current bg-current/20"></div> 
+                },
+                { 
+                  id: 'ptz', 
+                  name: 'PTZ', 
+                  desc: 'Se mueve y hace zoom automático, cubre áreas grandes con seguimiento', 
+                  cost: '$$$$', 
+                  icon: <div className="h-5 w-5 relative flex items-center justify-center">
+                    <Camera className="h-4 w-4" />
+                    <ArrowRight className="h-2 w-2 absolute -top-0.5 -right-0.5" />
+                    <ArrowLeft className="h-2 w-2 absolute -bottom-0.5 -left-0.5" />
+                  </div> 
+                },
+                { 
+                  id: 'wifi', 
+                  name: 'WiFi', 
+                  desc: 'Sin cables de video, instalación rápida, requiere buena señal WiFi', 
+                  cost: '$$$', 
+                  icon: <Wifi className="h-5 w-5" /> 
+                }
               ].map(option => {
                 const isSelected = formData.physicalTypes?.includes(option.id);
                 const isWifiSelected = formData.physicalTypes?.includes('wifi');
@@ -538,7 +572,7 @@ const QuotationWizard = () => {
               <div className="flex justify-center mb-3">
                 <div className="flex space-x-4">
                   <Smartphone className="h-8 w-8 text-xpertech-cyan" />
-                  <div className="h-8 w-12 border-2 border-xpertech-yellow rounded"></div>
+                  <Monitor className="h-8 w-8 border-2 border-xpertech-yellow rounded" />
                 </div>
               </div>
               <h3 className="text-xl font-bold">¿Necesitas acceso remoto?</h3>
@@ -547,7 +581,7 @@ const QuotationWizard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { id: 'yes', name: 'Sí, acceso desde mi celular', desc: 'App móvil para ver las cámaras desde cualquier lugar con internet', cost: '$$', icon: <Smartphone className="h-5 w-5" /> },
-                { id: 'no', name: 'No, solo en el lugar', desc: 'Solo ver las cámaras en el monitor local del sistema', cost: '$', icon: <div className="h-5 w-8 border border-current rounded"></div> }
+                { id: 'no', name: 'No, solo en el lugar', desc: 'Solo ver las cámaras en el monitor local del sistema', cost: '$', icon: <Monitor className="h-5 w-5" /> }
               ].map(option => (
                 <div 
                   key={option.id}
@@ -578,8 +612,80 @@ const QuotationWizard = () => {
             </div>
           </div>
         );
+
+      case 8: // Monitor
+        return (
+          <div className="space-y-4">
+            <div className="text-center mb-6">
+              <Monitor className="h-8 w-8 text-xpertech-cyan mx-auto mb-3" />
+              <h3 className="text-xl font-bold">¿Necesitas un monitor?</h3>
+              <p className="text-gray-400">Para visualizar las cámaras en el lugar</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {[
+                { id: 'yes', name: 'Sí, necesito monitor', desc: 'Incluir monitor para ver las cámaras localmente', cost: '$$' },
+                { id: 'no', name: 'No, no necesito', desc: 'Solo acceso remoto o ya tengo monitor', cost: '$' }
+              ].map(option => (
+                <div 
+                  key={option.id}
+                  onClick={() => updateFormField('needsMonitor', option.id)}
+                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
+                    formData.needsMonitor === option.id 
+                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
+                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.needsMonitor === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {formData.needsMonitor === 'yes' && (
+              <div>
+                <h4 className="font-bold mb-3">Tamaño del monitor</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { id: '19', name: '19"', cost: '$' },
+                    { id: '21', name: '21"', cost: '$$' },
+                    { id: '24', name: '24"', cost: '$$$' },
+                    { id: '27', name: '27"', cost: '$$$$' }
+                  ].map(option => (
+                    <div 
+                      key={option.id}
+                      onClick={() => updateFormField('monitorSize', option.id)}
+                      className={`cursor-pointer p-3 rounded-lg border transition-all text-center ${
+                        formData.monitorSize === option.id 
+                          ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
+                          : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                      }`}
+                    >
+                      <h5 className="font-bold">{option.name}</h5>
+                      <div className="flex items-center justify-center space-x-2 mt-1">
+                        <span className="text-xpertech-cyan font-bold text-sm">{option.cost}</span>
+                        {formData.monitorSize === option.id && (
+                          <Check className="text-xpertech-yellow h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
         
-      case 8: // Instalación
+      case 9: // Instalación
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">¿Necesitas cableado, montaje o complementos?</h3>
@@ -637,7 +743,7 @@ const QuotationWizard = () => {
           </div>
         );
         
-      case 9: // Ubicación
+      case 10: // Ubicación
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
@@ -658,10 +764,10 @@ const QuotationWizard = () => {
           </div>
         );
         
-      case 10: // Resultado
+      case 11: // Resultado
         return quotationResult ? (
           <div className="space-y-6">
-            <div className="text-center">
+            <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-xpertech-yellow/20 rounded-full mb-4">
                 <Check className="h-8 w-8 text-xpertech-yellow" />
               </div>
@@ -669,62 +775,70 @@ const QuotationWizard = () => {
               <p className="text-gray-400">Tu sistema de videovigilancia personalizado</p>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               {/* Resumen del Sistema */}
-              <div className="space-y-4">
+              <div className="md:col-span-2 space-y-4">
                 <h4 className="font-bold text-lg text-xpertech-cyan">📋 Resumen del Sistema</h4>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Cámaras:</span>
-                    <span className="font-medium">{formData.interiorCount + formData.exteriorCount} total ({formData.interiorCount} interior, {formData.exteriorCount} exterior)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Visión nocturna:</span>
-                    <span className="font-medium">{getSpanishValue('nightVisionType', formData.nightVisionType)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Tecnología:</span>
-                    <span className="font-medium">{getSpanishValue('technologyType', formData.technologyType)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Tipo físico:</span>
-                    <span className="font-medium">{getSpanishValue('physicalTypes', '')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Resolución:</span>
-                    <span className="font-medium">{resolutions.find(r => r.id === formData.resolution)?.name || 'No seleccionada'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Acceso remoto:</span>
-                    <span className="font-medium">{getSpanishValue('remoteAccess', formData.remoteAccess)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">DVR/NVR:</span>
-                    <span className="font-medium">{getSpanishValue('hasDvr', formData.hasDvr)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Instalación:</span>
-                    <span className="font-medium">{getSpanishValue('installationService', formData.installationService)}</span>
-                  </div>
-                  {(formData.installationService === 'complete' || formData.installationService === 'accessories') && formData.cableLength && (
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Cable:</span>
-                      <span className="font-medium">{formData.cableLength} metros</span>
+                      <span className="text-gray-400">Cámaras:</span>
+                      <span className="font-medium">{formData.interiorCount + formData.exteriorCount} total ({formData.interiorCount} interior, {formData.exteriorCount} exterior)</span>
                     </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Almacenamiento:</span>
-                    <span className="font-medium">{storageOptionsSimplified.find(s => s.id === formData.storage)?.name || 'No seleccionado'}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Visión nocturna:</span>
+                      <span className="font-medium">{getSpanishValue('nightVisionType', formData.nightVisionType)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Tecnología:</span>
+                      <span className="font-medium">{getSpanishValue('technologyType', formData.technologyType)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Tipo físico:</span>
+                      <span className="font-medium">{getSpanishValue('physicalTypes', '') || 'Ninguno'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Resolución:</span>
+                      <span className="font-medium">{resolutions.find(r => r.id === formData.resolution)?.name || 'No seleccionada'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Acceso remoto:</span>
+                      <span className="font-medium">{getSpanishValue('remoteAccess', formData.remoteAccess)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Ubicación:</span>
-                    <span className="font-medium">{formData.location || 'No especificada'}</span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Monitor:</span>
+                      <span className="font-medium">{getSpanishValue('needsMonitor', formData.needsMonitor)}{formData.needsMonitor === 'yes' && formData.monitorSize ? ` (${formData.monitorSize}")` : ''}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">DVR/NVR:</span>
+                      <span className="font-medium">{getSpanishValue('hasDvr', formData.hasDvr)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Instalación:</span>
+                      <span className="font-medium">{getSpanishValue('installationService', formData.installationService)}</span>
+                    </div>
+                    {(formData.installationService === 'complete' || formData.installationService === 'accessories') && formData.cableLength && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Cable:</span>
+                        <span className="font-medium">{formData.cableLength} metros</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Almacenamiento:</span>
+                      <span className="font-medium">{storageOptionsSimplified.find(s => s.id === formData.storage)?.name || 'No seleccionado'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Ubicación:</span>
+                      <span className="font-medium">{formData.location || 'No especificada'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Cotización y CTA */}
-              <div className="space-y-4">
+              <div className="flex flex-col justify-center space-y-4">
                 <div className="text-center">
                   <div className="p-6 bg-gradient-to-r from-xpertech-yellow/10 to-xpertech-cyan/10 rounded-lg border border-xpertech-yellow/20 mb-4">
                     <p className="text-3xl font-bold text-xpertech-yellow mb-1">{formatPrice(quotationResult.total)}</p>
@@ -786,9 +900,14 @@ const QuotationWizard = () => {
         return !!formData.hasDvr;
       case 7: // Acceso Remoto
         return !!formData.remoteAccess;
-      case 8: // Instalación
+      case 8: // Monitor
+        if (formData.needsMonitor === 'yes') {
+          return !!formData.needsMonitor && !!formData.monitorSize;
+        }
+        return !!formData.needsMonitor;
+      case 9: // Instalación
         return !!formData.installationService;
-      case 9: // Ubicación
+      case 10: // Ubicación
         return true; // Location is optional
       default:
         return true;
@@ -806,7 +925,7 @@ const QuotationWizard = () => {
         </div>
         
         <div className="flex justify-center mb-10">
-          <div className="hidden md:flex flex-wrap justify-center gap-2 max-w-4xl">
+          <div className="hidden md:flex flex-wrap justify-center gap-2 max-w-6xl">
             {steps.map((step, index) => (
               <div 
                 key={index}
