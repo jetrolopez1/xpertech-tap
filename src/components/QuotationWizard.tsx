@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Home, CloudRain, Camera, Disc, Smartphone, MapPin } from 'lucide-react';
 
 import { 
   cameraTypes, 
@@ -15,8 +15,8 @@ import {
   recordingOptions,
   remoteAccessOptions,
   dvrOptions,
-  cablingOptions,
-  storageOptions,
+  installationServiceOptions,
+  storageOptionsSimplified,
   calculateQuote,
   QuoteFormData
 } from '@/data/cameraData';
@@ -27,12 +27,14 @@ const QuotationWizard = () => {
   const [formData, setFormData] = useState<QuoteFormData>({
     cameraCount: 1,
     cameraType: '',
+    cameraTypes: [],
     resolution: '',
     installationType: '',
     recording: '',
     remoteAccess: '',
     hasDvr: '',
     needsCabling: '',
+    installationService: '',
     cableLength: 10,
     storage: '',
     location: '',
@@ -41,7 +43,8 @@ const QuotationWizard = () => {
     exteriorCount: 0,
     nightVisionType: '',
     technologyType: '',
-    physicalType: ''
+    physicalType: '',
+    physicalTypes: []
   });
   
   const [quotationResult, setQuotationResult] = useState<ReturnType<typeof calculateQuote> | null>(null);
@@ -50,15 +53,13 @@ const QuotationWizard = () => {
     'Ubicación',
     'Visión Nocturna', 
     'Tecnología',
-    'Tipo Físico',
+    'Tipo de Cámara',
     'Resolución',
-    'Grabación',
+    'Sistema de Grabación',
     'Acceso Remoto',
-    'DVR/NVR',
-    'Cableado',
-    'Almacenamiento',
+    'Instalación',
     'Datos',
-    'Resultado'
+    'Cotización'
   ];
 
   const scrollToCotizador = () => {
@@ -71,10 +72,8 @@ const QuotationWizard = () => {
   };
   
   const handleStepClick = (stepIndex: number) => {
-    if (stepIndex + 1 <= currentStep || stepIndex + 1 < currentStep) {
-      setCurrentStep(stepIndex + 1);
-      setTimeout(scrollToCotizador, 100);
-    }
+    setCurrentStep(stepIndex + 1);
+    setTimeout(scrollToCotizador, 100);
   };
   
   const handleNextStep = () => {
@@ -97,7 +96,7 @@ const QuotationWizard = () => {
     }
   };
   
-  const updateFormField = (field: keyof QuoteFormData, value: string | number) => {
+  const updateFormField = (field: keyof QuoteFormData, value: string | number | string[]) => {
     setFormData({ ...formData, [field]: value });
   };
   
@@ -124,6 +123,65 @@ const QuotationWizard = () => {
       default: return '$';
     }
   };
+
+  const togglePhysicalType = (typeId: string) => {
+    const currentTypes = formData.physicalTypes || [];
+    if (typeId === 'wifi') {
+      // WiFi is exclusive
+      updateFormField('physicalTypes', [typeId]);
+    } else {
+      if (currentTypes.includes(typeId)) {
+        updateFormField('physicalTypes', currentTypes.filter(t => t !== typeId));
+      } else {
+        const newTypes = currentTypes.filter(t => t !== 'wifi'); // Remove wifi if adding others
+        updateFormField('physicalTypes', [...newTypes, typeId]);
+      }
+    }
+  };
+
+  const getSpanishValue = (field: string, value: string) => {
+    switch (field) {
+      case 'nightVisionType':
+        switch (value) {
+          case 'none': return 'Sin visión nocturna';
+          case 'infrared': return 'Con infrarrojos';
+          case 'full-color': return 'A todo color';
+          default: return value;
+        }
+      case 'technologyType':
+        switch (value) {
+          case 'analog': return 'Analógica';
+          case 'ip': return 'IP Digital';
+          default: return value;
+        }
+      case 'physicalTypes':
+        const types = formData.physicalTypes || [];
+        return types.map(type => {
+          switch (type) {
+            case 'bullet': return 'Bullet';
+            case 'dome': return 'Domo';
+            case 'ptz': return 'PTZ';
+            case 'wifi': return 'WiFi';
+            default: return type;
+          }
+        }).join(', ') || 'Ninguno';
+      case 'recording':
+        return value === 'yes' ? 'Sí' : 'No';
+      case 'remoteAccess':
+        return value === 'yes' ? 'Sí' : 'No';
+      case 'hasDvr':
+        return value === 'yes' ? 'Ya tengo equipo' : 'Necesito equipo nuevo';
+      case 'installationService':
+        switch (value) {
+          case 'complete': return 'Instalación completa';
+          case 'accessories': return 'Solo complementos';
+          case 'none': return 'Ninguno';
+          default: return value;
+        }
+      default:
+        return value;
+    }
+  };
   
   const generateWhatsAppText = () => {
     if (!quotationResult) return '';
@@ -131,16 +189,19 @@ const QuotationWizard = () => {
     let message = `Hola, me interesa cotizar un sistema de cámaras con las siguientes características: `;
     message += `\n- Cámaras interiores: ${formData.interiorCount}`;
     message += `\n- Cámaras exteriores: ${formData.exteriorCount}`;
-    message += `\n- Visión nocturna: ${formData.nightVisionType}`;
-    message += `\n- Tecnología: ${formData.technologyType}`;
-    message += `\n- Tipo físico: ${formData.physicalType}`;
+    message += `\n- Visión nocturna: ${getSpanishValue('nightVisionType', formData.nightVisionType)}`;
+    message += `\n- Tecnología: ${getSpanishValue('technologyType', formData.technologyType)}`;
+    message += `\n- Tipos físicos: ${getSpanishValue('physicalTypes', '')}`;
     message += `\n- Resolución: ${resolutions.find(res => res.id === formData.resolution)?.name || formData.resolution}`;
-    message += `\n- Grabación: ${formData.recording === 'yes' ? 'Sí' : 'No'}`;
-    message += `\n- Acceso Remoto: ${formData.remoteAccess === 'yes' ? 'Sí' : 'No'}`;
-    message += `\n- DVR/NVR: ${formData.hasDvr === 'yes' ? 'Ya cuento con uno' : 'Necesito uno'}`;
-    message += `\n- Cableado: ${formData.needsCabling === 'yes' ? `Sí (${formData.cableLength} metros)` : 'No'}`;
-    message += `\n- Almacenamiento: ${storageOptions.find(s => s.id === formData.storage)?.name || formData.storage}`;
-    message += `\n- Ubicación: ${formData.location}`;
+    message += `\n- Grabación: ${getSpanishValue('recording', formData.recording)}`;
+    message += `\n- Acceso Remoto: ${getSpanishValue('remoteAccess', formData.remoteAccess)}`;
+    message += `\n- DVR/NVR: ${getSpanishValue('hasDvr', formData.hasDvr)}`;
+    message += `\n- Instalación: ${getSpanishValue('installationService', formData.installationService)}`;
+    if ((formData.installationService === 'complete' || formData.installationService === 'accessories') && formData.cableLength) {
+      message += ` (${formData.cableLength} metros de cable)`;
+    }
+    message += `\n- Almacenamiento: ${storageOptionsSimplified.find(s => s.id === formData.storage)?.name || formData.storage}`;
+    message += `\n- Ubicación: ${formData.location || 'No especificada'}`;
     message += `\n\nCotización estimada: ${formatPrice(quotationResult.total)}`;
     
     return encodeURIComponent(message);
@@ -151,12 +212,23 @@ const QuotationWizard = () => {
       case 1: // Ubicación de cámaras
         return (
           <div className="space-y-6">
-            <h3 className="text-xl font-bold">¿Dónde necesitas las cámaras?</h3>
-            <p className="text-gray-400">Selecciona la cantidad para cada ubicación</p>
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-3">
+                <div className="flex space-x-4">
+                  <Home className="h-8 w-8 text-xpertech-cyan" />
+                  <CloudRain className="h-8 w-8 text-xpertech-yellow" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold">¿Dónde necesitas las cámaras?</h3>
+              <p className="text-gray-400">Selecciona la cantidad para cada ubicación</p>
+            </div>
             
             <div className="space-y-4">
               <div className="p-4 bg-gray-900 rounded-lg">
-                <h4 className="font-bold mb-2">Cámaras para Interior</h4>
+                <div className="flex items-center mb-2">
+                  <Home className="h-5 w-5 text-xpertech-cyan mr-2" />
+                  <h4 className="font-bold">Cámaras para Interior</h4>
+                </div>
                 <p className="text-sm text-gray-400 mb-3">Espacios cerrados como oficinas, salas, pasillos internos</p>
                 <div className="flex items-center space-x-4">
                   <Button 
@@ -178,7 +250,10 @@ const QuotationWizard = () => {
               </div>
 
               <div className="p-4 bg-gray-900 rounded-lg">
-                <h4 className="font-bold mb-2">Cámaras para Exterior</h4>
+                <div className="flex items-center mb-2">
+                  <CloudRain className="h-5 w-5 text-xpertech-yellow mr-2" />
+                  <h4 className="font-bold">Cámaras para Exterior</h4>
+                </div>
                 <p className="text-sm text-gray-400 mb-3">Espacios al aire libre como entradas, patios, estacionamientos</p>
                 <div className="flex items-center space-x-4">
                   <Button 
@@ -206,12 +281,12 @@ const QuotationWizard = () => {
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Tipo de visión nocturna</h3>
-            <p className="text-gray-400">¿Cómo necesitas ver durante la noche?</p>
+            <p className="text-gray-400">Define el tipo de visión nocturna que necesitas</p>
             <div className="grid grid-cols-1 gap-4">
               {[
-                { id: 'none', name: 'Sin visión nocturna', desc: 'Solo funcionan con luz natural o artificial', cost: '$' },
-                { id: 'infrared', name: 'Con infrarrojos (IR)', desc: 'Ven en blanco y negro durante la noche', cost: '$$' },
-                { id: 'full-color', name: 'A todo color', desc: 'Mantienen los colores incluso en la oscuridad', cost: '$$$' }
+                { id: 'none', name: 'Sin visión nocturna', desc: 'Solo funcionan con luz natural o artificial adecuada', cost: '$' },
+                { id: 'infrared', name: 'Con infrarrojos (IR)', desc: 'Ven en blanco y negro durante la noche con iluminación infrarroja', cost: '$$' },
+                { id: 'full-color', name: 'A todo color', desc: 'Mantienen los colores incluso en completa oscuridad', cost: '$$$' }
               ].map(option => (
                 <div 
                   key={option.id}
@@ -244,11 +319,11 @@ const QuotationWizard = () => {
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Tipo de tecnología</h3>
-            <p className="text-gray-400">Elige la tecnología que mejor se adapte a tu presupuesto</p>
+            <p className="text-gray-400">Elige entre tecnología IP (digital, más moderna y flexible) o analógica (más básica y económica)</p>
             <div className="grid grid-cols-1 gap-4">
               {[
-                { id: 'analog', name: 'Analógica', desc: 'Más económica, calidad básica, instalación sencilla', cost: '$' },
-                { id: 'ip', name: 'IP Digital', desc: 'Más moderna, mejor calidad, mayor flexibilidad y funciones', cost: '$$' }
+                { id: 'analog', name: 'Analógica', desc: 'Más económica, calidad básica, instalación sencilla y compatible con sistemas antiguos', cost: '$' },
+                { id: 'ip', name: 'IP Digital', desc: 'Más moderna, mejor calidad de imagen, mayor flexibilidad y funciones avanzadas', cost: '$$' }
               ].map(option => (
                 <div 
                   key={option.id}
@@ -281,38 +356,56 @@ const QuotationWizard = () => {
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Tipo físico de cámara</h3>
-            <p className="text-gray-400">Selecciona el diseño que mejor se adapte al lugar de instalación</p>
+            <p className="text-gray-400">Selecciona uno o varios tipos que mejor se adapten al lugar (WiFi es exclusivo)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { id: 'bullet', name: 'Bullet', desc: 'Forma cilíndrica, ideal para exteriores, fácil instalación', cost: '$$' },
-                { id: 'dome', name: 'Domo', desc: 'Diseño discreto y elegante, perfecto para interiores', cost: '$$' },
-                { id: 'ptz', name: 'PTZ', desc: 'Se mueve y hace zoom, cubre áreas grandes', cost: '$$$$' },
-                { id: 'wifi', name: 'WiFi', desc: 'Sin cables, instalación rápida y sencilla', cost: '$$$' }
-              ].map(option => (
-                <div 
-                  key={option.id}
-                  onClick={() => updateFormField('physicalType', option.id)}
-                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    formData.physicalType === option.id 
-                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
-                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-bold">{option.name}</h4>
-                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
-                      {formData.physicalType === option.id && (
-                        <Check className="text-xpertech-yellow" />
-                      )}
+                { id: 'bullet', name: 'Bullet', desc: 'Forma cilíndrica, ideal para exteriores, fácil instalación en paredes', cost: '$$', icon: <Camera className="h-5 w-5" /> },
+                { id: 'dome', name: 'Domo', desc: 'Diseño discreto y elegante, perfecto para interiores, difícil de detectar dirección', cost: '$$', icon: <div className="h-5 w-5 rounded-full border-2 border-current"></div> },
+                { id: 'ptz', name: 'PTZ', desc: 'Se mueve y hace zoom automático, cubre áreas grandes con seguimiento', cost: '$$$$', icon: <div className="h-5 w-5 relative"><Camera className="h-5 w-5" /><ArrowRight className="h-3 w-3 absolute -top-1 -right-1" /></div> },
+                { id: 'wifi', name: 'WiFi', desc: 'Sin cables de video, instalación rápida, requiere buena señal WiFi', cost: '$$$', icon: <div className="h-5 w-5 flex items-center justify-center"><div className="w-3 h-3 border border-current rounded"></div></div> }
+              ].map(option => {
+                const isSelected = formData.physicalTypes?.includes(option.id);
+                const isWifiSelected = formData.physicalTypes?.includes('wifi');
+                const isDisabled = option.id !== 'wifi' && isWifiSelected;
+                
+                return (
+                  <div 
+                    key={option.id}
+                    onClick={() => !isDisabled && togglePhysicalType(option.id)}
+                    className={`cursor-pointer p-4 rounded-lg border transition-all ${
+                      isSelected
+                        ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
+                        : isDisabled
+                          ? 'border-gray-700 bg-gray-900/50 opacity-50 cursor-not-allowed'
+                          : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <div className="text-xpertech-cyan mr-2">{option.icon}</div>
+                          <h4 className="font-bold">{option.name}</h4>
+                        </div>
+                        <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                        {isSelected && (
+                          <Check className="text-xpertech-yellow" />
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+            {formData.physicalTypes?.includes('wifi') && (
+              <div className="p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
+                <p className="text-blue-300 text-sm">
+                  ⚠️ Las cámaras WiFi no se pueden combinar con otros tipos físicos debido a su instalación especial.
+                </p>
+              </div>
+            )}
           </div>
         );
         
@@ -320,7 +413,7 @@ const QuotationWizard = () => {
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Resolución de imagen</h3>
-            <p className="text-gray-400">Mayor resolución = imagen más nítida y detallada</p>
+            <p className="text-gray-400">Selecciona la resolución deseada para tus cámaras (mayor resolución = imagen más nítida)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {resolutions.map(res => (
                 <div 
@@ -336,10 +429,10 @@ const QuotationWizard = () => {
                     <div className="flex-1">
                       <h4 className="font-bold">{res.name}</h4>
                       <p className="text-gray-400 text-sm mt-1">
-                        {res.id === '2mp' && 'Calidad básica, suficiente para uso general'}
-                        {res.id === '4mp' && 'Buena calidad, recomendada para la mayoría de casos'}
-                        {res.id === '5mp' && 'Alta calidad, excelente para detalles importantes'}
-                        {res.id === '8mp' && 'Máxima calidad 4K, ideal para identificación precisa'}
+                        {res.id === '2mp' && 'Calidad básica, suficiente para uso general y identificación básica'}
+                        {res.id === '4mp' && 'Buena calidad, recomendada para la mayoría de casos de vigilancia'}
+                        {res.id === '5mp' && 'Alta calidad, excelente para detalles importantes y reconocimiento'}
+                        {res.id === '8mp' && 'Máxima calidad 4K, ideal para identificación precisa y zoom digital'}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -355,39 +448,85 @@ const QuotationWizard = () => {
           </div>
         );
         
-      case 6: // Grabación
+      case 6: // Sistema de Grabación (DVR/NVR + Grabación + Almacenamiento)
         return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">¿Requieres grabación?</h3>
-            <p className="text-gray-400">La grabación te permite revisar eventos pasados</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { id: 'yes', name: 'Sí, necesito grabación', desc: 'Podrás revisar lo que pasó en cualquier momento', cost: '$$' },
-                { id: 'no', name: 'No, solo monitoreo en vivo', desc: 'Solo ver las cámaras en tiempo real', cost: '$' }
-              ].map(option => (
-                <div 
-                  key={option.id}
-                  onClick={() => updateFormField('recording', option.id)}
-                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    formData.recording === option.id 
-                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
-                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-bold">{option.name}</h4>
-                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-3">
+                <div className="flex space-x-4">
+                  <Camera className="h-8 w-8 text-xpertech-cyan" />
+                  <Disc className="h-8 w-8 text-xpertech-yellow" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold">Sistema de grabación</h3>
+              <p className="text-gray-400">Configura tu sistema de grabación y almacenamiento</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-bold mb-3">¿Ya tienes un DVR/NVR?</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { id: 'yes', name: 'Sí, ya tengo equipo', desc: 'Usaremos tu equipo actual (verificaremos compatibilidad)', cost: '$' },
+                    { id: 'no', name: 'No, necesito uno nuevo', desc: 'Incluiremos un DVR/NVR nuevo y compatible en la cotización', cost: '$$$' }
+                  ].map(option => (
+                    <div 
+                      key={option.id}
+                      onClick={() => updateFormField('hasDvr', option.id)}
+                      className={`cursor-pointer p-4 rounded-lg border transition-all ${
+                        formData.hasDvr === option.id 
+                          ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
+                          : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h5 className="font-bold">{option.name}</h5>
+                          <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                          {formData.hasDvr === option.id && (
+                            <Check className="text-xpertech-yellow" />
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
-                      {formData.recording === option.id && (
-                        <Check className="text-xpertech-yellow" />
-                      )}
-                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {formData.hasDvr === 'no' && (
+                <div>
+                  <h4 className="font-bold mb-3">Almacenamiento para grabaciones</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {storageOptionsSimplified.map(option => (
+                      <div 
+                        key={option.id}
+                        onClick={() => updateFormField('storage', option.id)}
+                        className={`cursor-pointer p-4 rounded-lg border transition-all ${
+                          formData.storage === option.id 
+                            ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
+                            : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h5 className="font-bold">{option.name}</h5>
+                            <p className="text-gray-400 text-sm mt-1">{option.description}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xpertech-cyan font-bold">{getCostIndicator(option.price || 0)}</span>
+                            {formData.storage === option.id && (
+                              <Check className="text-xpertech-yellow" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         );
@@ -395,12 +534,20 @@ const QuotationWizard = () => {
       case 7: // Acceso Remoto
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">¿Necesitas acceso remoto?</h3>
-            <p className="text-gray-400">Ve tus cámaras desde tu celular estés donde estés</p>
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-3">
+                <div className="flex space-x-4">
+                  <Smartphone className="h-8 w-8 text-xpertech-cyan" />
+                  <div className="h-8 w-12 border-2 border-xpertech-yellow rounded"></div>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold">¿Necesitas acceso remoto?</h3>
+              <p className="text-gray-400">Ve tus cámaras desde tu celular estés donde estés</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { id: 'yes', name: 'Sí, acceso desde mi celular', desc: 'App móvil para ver las cámaras desde cualquier lugar', cost: '$$' },
-                { id: 'no', name: 'No, solo en el lugar', desc: 'Solo ver las cámaras en el monitor local', cost: '$' }
+                { id: 'yes', name: 'Sí, acceso desde mi celular', desc: 'App móvil para ver las cámaras desde cualquier lugar con internet', cost: '$$', icon: <Smartphone className="h-5 w-5" /> },
+                { id: 'no', name: 'No, solo en el lugar', desc: 'Solo ver las cámaras en el monitor local del sistema', cost: '$', icon: <div className="h-5 w-8 border border-current rounded"></div> }
               ].map(option => (
                 <div 
                   key={option.id}
@@ -413,7 +560,10 @@ const QuotationWizard = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="font-bold">{option.name}</h4>
+                      <div className="flex items-center mb-2">
+                        <div className="text-xpertech-cyan mr-2">{option.icon}</div>
+                        <h4 className="font-bold">{option.name}</h4>
+                      </div>
                       <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -429,21 +579,18 @@ const QuotationWizard = () => {
           </div>
         );
         
-      case 8: // DVR/NVR
+      case 8: // Instalación
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">¿Ya tienes DVR/NVR?</h3>
-            <p className="text-gray-400">Es el equipo que controla y graba las cámaras</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { id: 'yes', name: 'Sí, ya tengo uno', desc: 'Usaremos tu equipo actual (si es compatible)', cost: '$' },
-                { id: 'no', name: 'No, necesito uno nuevo', desc: 'Incluiremos un DVR/NVR nuevo en la cotización', cost: '$$$' }
-              ].map(option => (
+            <h3 className="text-xl font-bold">¿Necesitas cableado, montaje o complementos?</h3>
+            <p className="text-gray-400">Selecciona el nivel de servicio que necesitas</p>
+            <div className="grid grid-cols-1 gap-4 mb-4">
+              {installationServiceOptions.map(option => (
                 <div 
                   key={option.id}
-                  onClick={() => updateFormField('hasDvr', option.id)}
+                  onClick={() => updateFormField('installationService', option.id)}
                   className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    formData.hasDvr === option.id 
+                    formData.installationService === option.id 
                       ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
@@ -451,48 +598,11 @@ const QuotationWizard = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h4 className="font-bold">{option.name}</h4>
-                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                      <p className="text-gray-400 text-sm mt-1">{option.description}</p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
-                      {formData.hasDvr === option.id && (
-                        <Check className="text-xpertech-yellow" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-        
-      case 9: // Cableado
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">¿Necesitas cableado y montaje?</h3>
-            <p className="text-gray-400">Instalación completa con cables y soportes</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              {[
-                { id: 'yes', name: 'Sí, instalación completa', desc: 'Incluye cables, conectores y montaje profesional', cost: '$$' },
-                { id: 'no', name: 'No, yo me encargo', desc: 'Solo necesito las cámaras y equipos', cost: '$' }
-              ].map(option => (
-                <div 
-                  key={option.id}
-                  onClick={() => updateFormField('needsCabling', option.id)}
-                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    formData.needsCabling === option.id 
-                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
-                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-bold">{option.name}</h4>
-                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
-                      {formData.needsCabling === option.id && (
+                      <span className="text-xpertech-cyan font-bold">{getCostIndicator(option.price || 0)}</span>
+                      {formData.installationService === option.id && (
                         <Check className="text-xpertech-yellow" />
                       )}
                     </div>
@@ -501,7 +611,7 @@ const QuotationWizard = () => {
               ))}
             </div>
             
-            {formData.needsCabling === 'yes' && (
+            {(formData.installationService === 'complete' || formData.installationService === 'accessories') && (
               <div className="space-y-2">
                 <Label htmlFor="cableLength">Distancia aproximada total de cableado:</Label>
                 <div className="flex items-center space-x-4">
@@ -521,55 +631,19 @@ const QuotationWizard = () => {
                     +
                   </Button>
                 </div>
+                <p className="text-gray-400 text-sm">Incluye cable coaxial o UTP, conectores y alimentación eléctrica</p>
               </div>
             )}
           </div>
         );
         
-      case 10: // Almacenamiento
+      case 9: // Ubicación
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Almacenamiento para grabaciones</h3>
-            <p className="text-gray-400">¿Dónde quieres guardar las grabaciones?</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {storageOptions.map(option => (
-                <div 
-                  key={option.id}
-                  onClick={() => updateFormField('storage', option.id)}
-                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    formData.storage === option.id 
-                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
-                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-bold">{option.name}</h4>
-                      <p className="text-gray-400 text-sm mt-1">
-                        {option.id === 'none' && 'Solo monitoreo, sin grabaciones'}
-                        {option.id === '1tb' && 'Almacena aproximadamente 1-2 semanas'}
-                        {option.id === '2tb' && 'Almacena aproximadamente 3-4 semanas'}
-                        {option.id === '4tb' && 'Almacena aproximadamente 2-3 meses'}
-                        {option.id === 'cloud' && 'Respaldo en la nube, acceso desde cualquier lugar'}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xpertech-cyan font-bold">{getCostIndicator(option.price || 0)}</span>
-                      {formData.storage === option.id && (
-                        <Check className="text-xpertech-yellow" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="text-center mb-6">
+              <MapPin className="h-8 w-8 text-xpertech-cyan mx-auto mb-3" />
+              <h3 className="text-xl font-bold">Datos de contacto</h3>
             </div>
-          </div>
-        );
-        
-      case 11: // Ubicación
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">Datos de contacto</h3>
             <div className="space-y-2">
               <Label htmlFor="location">Ubicación de instalación:</Label>
               <Input 
@@ -579,60 +653,113 @@ const QuotationWizard = () => {
                 placeholder="Ej: Centro, Tapachula" 
                 className="bg-gray-900 border-gray-700 focus:border-xpertech-cyan" 
               />
-              <p className="text-gray-400 text-sm">Esta información nos ayuda a coordinar la instalación.</p>
+              <p className="text-gray-400 text-sm">Esta información nos ayuda a coordinar la instalación y calcular costos de traslado.</p>
             </div>
           </div>
         );
         
-      case 12: // Resultado
+      case 10: // Resultado
         return quotationResult ? (
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-center text-xpertech-yellow">Tu Cotización Personalizada</h3>
-            
-            <div className="p-4 bg-gray-900 rounded-lg">
-              <h4 className="font-bold text-lg mb-2">Resumen del Sistema</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p>Cámaras interiores: <span className="font-bold">{formData.interiorCount}</span></p>
-                  <p>Cámaras exteriores: <span className="font-bold">{formData.exteriorCount}</span></p>
-                  <p>Visión nocturna: <span className="font-bold">{formData.nightVisionType}</span></p>
-                  <p>Tecnología: <span className="font-bold">{formData.technologyType}</span></p>
-                  <p>Tipo físico: <span className="font-bold">{formData.physicalType}</span></p>
-                  <p>Resolución: <span className="font-bold">{resolutions.find(r => r.id === formData.resolution)?.name}</span></p>
-                </div>
-                <div>
-                  <p>Grabación: <span className="font-bold">{formData.recording === 'yes' ? 'Sí' : 'No'}</span></p>
-                  <p>Acceso Remoto: <span className="font-bold">{formData.remoteAccess === 'yes' ? 'Sí' : 'No'}</span></p>
-                  <p>DVR/NVR: <span className="font-bold">{formData.hasDvr === 'yes' ? 'Incluido' : 'Nuevo (incluido)'}</span></p>
-                  <p>Instalación: <span className="font-bold">{formData.needsCabling === 'yes' ? `Completa (${formData.cableLength}m)` : 'Solo equipos'}</span></p>
-                  <p>Almacenamiento: <span className="font-bold">{storageOptions.find(s => s.id === formData.storage)?.name}</span></p>
-                  <p>Ubicación: <span className="font-bold">{formData.location || 'No especificada'}</span></p>
-                </div>
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-xpertech-yellow/20 rounded-full mb-4">
+                <Check className="h-8 w-8 text-xpertech-yellow" />
               </div>
+              <h3 className="text-2xl font-bold text-center text-xpertech-yellow mb-2">¡Cotización Lista!</h3>
+              <p className="text-gray-400">Tu sistema de videovigilancia personalizado</p>
             </div>
             
-            <div className="text-center pt-4">
-              <div className="mb-4 p-6 bg-xpertech-yellow/10 rounded-lg border border-xpertech-yellow/20">
-                <p className="text-2xl font-bold text-xpertech-yellow">{formatPrice(quotationResult.total)}</p>
-                <p className="text-gray-400 mt-2">Cotización estimada</p>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Resumen del Sistema */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-lg text-xpertech-cyan">📋 Resumen del Sistema</h4>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Cámaras:</span>
+                    <span className="font-medium">{formData.interiorCount + formData.exteriorCount} total ({formData.interiorCount} interior, {formData.exteriorCount} exterior)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Visión nocturna:</span>
+                    <span className="font-medium">{getSpanishValue('nightVisionType', formData.nightVisionType)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Tecnología:</span>
+                    <span className="font-medium">{getSpanishValue('technologyType', formData.technologyType)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Tipo físico:</span>
+                    <span className="font-medium">{getSpanishValue('physicalTypes', '')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Resolución:</span>
+                    <span className="font-medium">{resolutions.find(r => r.id === formData.resolution)?.name || 'No seleccionada'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Acceso remoto:</span>
+                    <span className="font-medium">{getSpanishValue('remoteAccess', formData.remoteAccess)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">DVR/NVR:</span>
+                    <span className="font-medium">{getSpanishValue('hasDvr', formData.hasDvr)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Instalación:</span>
+                    <span className="font-medium">{getSpanishValue('installationService', formData.installationService)}</span>
+                  </div>
+                  {(formData.installationService === 'complete' || formData.installationService === 'accessories') && formData.cableLength && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Cable:</span>
+                      <span className="font-medium">{formData.cableLength} metros</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Almacenamiento:</span>
+                    <span className="font-medium">{storageOptionsSimplified.find(s => s.id === formData.storage)?.name || 'No seleccionado'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Ubicación:</span>
+                    <span className="font-medium">{formData.location || 'No especificada'}</span>
+                  </div>
+                </div>
               </div>
-              <p className="mb-4 text-gray-400">* Esta cotización es un estimado. Para un presupuesto detallado, contacta con nuestro equipo:</p>
-              <Button 
-                className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg"
-                asChild
-              >
-                <a 
-                  href={`https://wa.me/529621765599?text=${generateWhatsAppText()}`}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  Solicitar Cotización por WhatsApp
-                </a>
-              </Button>
+
+              {/* Cotización y CTA */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="p-6 bg-gradient-to-r from-xpertech-yellow/10 to-xpertech-cyan/10 rounded-lg border border-xpertech-yellow/20 mb-4">
+                    <p className="text-3xl font-bold text-xpertech-yellow mb-1">{formatPrice(quotationResult.total)}</p>
+                    <p className="text-gray-400">Cotización estimada</p>
+                  </div>
+                  
+                  <Button 
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-6 text-lg font-bold shadow-lg transform transition-all duration-200 hover:scale-105"
+                    asChild
+                  >
+                    <a 
+                      href={`https://wa.me/529621765599?text=${generateWhatsAppText()}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center"
+                    >
+                      <svg className="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                      </svg>
+                      Solicitar Cotización
+                    </a>
+                  </Button>
+                  
+                  <p className="text-gray-400 text-sm mt-3">
+                    * Esta cotización es un estimado. Para un presupuesto detallado y visita técnica gratuita, contáctanos.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="text-center py-8">Calculando...</div>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-xpertech-yellow mx-auto mb-4"></div>
+            <p>Calculando tu cotización personalizada...</p>
+          </div>
         );
         
       default:
@@ -649,20 +776,19 @@ const QuotationWizard = () => {
       case 3: // Tecnología
         return !!formData.technologyType;
       case 4: // Tipo Físico
-        return !!formData.physicalType;
+        return formData.physicalTypes && formData.physicalTypes.length > 0;
       case 5: // Resolución
         return !!formData.resolution;
-      case 6: // Grabación
-        return !!formData.recording;
+      case 6: // Sistema de Grabación
+        if (formData.hasDvr === 'no') {
+          return !!formData.hasDvr && !!formData.storage;
+        }
+        return !!formData.hasDvr;
       case 7: // Acceso Remoto
         return !!formData.remoteAccess;
-      case 8: // DVR/NVR
-        return !!formData.hasDvr;
-      case 9: // Cableado
-        return !!formData.needsCabling;
-      case 10: // Almacenamiento
-        return !!formData.storage;
-      case 11: // Ubicación
+      case 8: // Instalación
+        return !!formData.installationService;
+      case 9: // Ubicación
         return true; // Location is optional
       default:
         return true;
@@ -680,20 +806,20 @@ const QuotationWizard = () => {
         </div>
         
         <div className="flex justify-center mb-10">
-          <div className="hidden md:flex overflow-hidden rounded-lg border border-gray-800 bg-black">
+          <div className="hidden md:flex flex-wrap justify-center gap-2 max-w-4xl">
             {steps.map((step, index) => (
               <div 
                 key={index}
                 onClick={() => handleStepClick(index)}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
+                className={`px-3 py-2 text-sm cursor-pointer transition-colors rounded-lg whitespace-nowrap ${
                   currentStep > index + 1
                     ? 'bg-xpertech-cyan/20 text-white hover:bg-xpertech-cyan/30' 
                     : currentStep === index + 1
-                      ? 'bg-xpertech-yellow/20 text-xpertech-yellow' 
+                      ? 'bg-xpertech-yellow/20 text-xpertech-yellow border border-xpertech-yellow/40' 
                       : 'bg-gray-900 text-gray-500 hover:bg-gray-800'
                 }`}
               >
-                {index + 1}. {step}
+                {step}
               </div>
             ))}
           </div>
@@ -703,7 +829,7 @@ const QuotationWizard = () => {
           </div>
         </div>
         
-        <Card ref={cotizadorRef} className="bg-black/50 border border-gray-800 p-6 md:p-8 max-w-3xl mx-auto">
+        <Card ref={cotizadorRef} className="bg-black/50 border border-gray-800 p-6 md:p-8 max-w-4xl mx-auto">
           {renderStepContent()}
           
           <div className="mt-8 flex justify-between">

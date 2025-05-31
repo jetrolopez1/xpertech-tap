@@ -1,4 +1,3 @@
-
 export interface CameraOption {
   id: string;
   name: string;
@@ -87,15 +86,31 @@ export const storageOptions: CameraOption[] = [
   { id: 'cloud', name: 'Almacenamiento en la nube', price: 500 }
 ];
 
+export const installationServiceOptions: CameraOption[] = [
+  { id: 'complete', name: 'Instalación completa', description: 'Incluye cableado, montaje y configuración profesional', price: 500 },
+  { id: 'accessories', name: 'Solo complementos', description: 'Conectores, alimentación y cable (sin instalación)', price: 150 },
+  { id: 'none', name: 'Ninguno', description: 'Solo cámaras y equipo', price: 0 }
+];
+
+export const storageOptionsSimplified: CameraOption[] = [
+  { id: 'none', name: 'Ninguno', description: 'Solo monitoreo en vivo', price: 0 },
+  { id: '1tb', name: '1TB', description: 'Almacena aproximadamente 1-2 semanas', price: 1200 },
+  { id: '2tb', name: '2TB', description: 'Almacena aproximadamente 3-4 semanas', price: 1800 },
+  { id: '3tb', name: '3TB', description: 'Almacena aproximadamente 1-2 meses', price: 2400 },
+  { id: '4tb', name: '4TB', description: 'Almacena aproximadamente 2-3 meses', price: 2800 },
+  { id: 'cloud', name: 'Almacenamiento en la nube', description: 'Respaldo seguro con acceso desde cualquier lugar', price: 500 }
+];
+
 export interface QuoteFormData {
   cameraCount: number;
   cameraType: string;
+  cameraTypes: string[]; // New: multiple camera types
   resolution: string;
   installationType: string;
   recording: string;
   remoteAccess: string;
   hasDvr: string;
-  needsCabling: string;
+  installationService: string; // New: replaces needsCabling
   cableLength?: number;
   storage: string;
   location: string;
@@ -105,6 +120,7 @@ export interface QuoteFormData {
   nightVisionType: string;
   technologyType: string;
   physicalType: string;
+  physicalTypes: string[]; // New: multiple physical types
 }
 
 export const calculateQuote = (formData: QuoteFormData): { 
@@ -133,13 +149,19 @@ export const calculateQuote = (formData: QuoteFormData): {
     baseCameraPrice += 400;
   }
 
-  // Adjust price based on physical type
-  if (formData.physicalType === 'ptz') {
-    baseCameraPrice += 2300;
-  } else if (formData.physicalType === 'wifi') {
-    baseCameraPrice += 400;
-  } else if (formData.physicalType === 'dome') {
-    baseCameraPrice += 200;
+  // Adjust price based on physical types (multiple selection)
+  if (formData.physicalTypes && formData.physicalTypes.length > 0) {
+    let typeMultiplier = 0;
+    formData.physicalTypes.forEach(type => {
+      if (type === 'ptz') {
+        typeMultiplier += 2300;
+      } else if (type === 'wifi') {
+        typeMultiplier += 400;
+      } else if (type === 'dome') {
+        typeMultiplier += 200;
+      }
+    });
+    baseCameraPrice += typeMultiplier / formData.physicalTypes.length; // Average if multiple types
   }
 
   if (totalCameras > 0) {
@@ -191,30 +213,6 @@ export const calculateQuote = (formData: QuoteFormData): {
     }
   }
 
-  // Recording
-  const selectedRecording = recordingOptions.find(rec => rec.id === formData.recording);
-  if (selectedRecording && selectedRecording.price) {
-    total += selectedRecording.price;
-    details.push({
-      item: `Grabación`,
-      quantity: 1,
-      unitPrice: selectedRecording.price,
-      total: selectedRecording.price
-    });
-  }
-
-  // Remote Access
-  const selectedRemoteAccess = remoteAccessOptions.find(acc => acc.id === formData.remoteAccess);
-  if (selectedRemoteAccess && selectedRemoteAccess.price) {
-    total += selectedRemoteAccess.price;
-    details.push({
-      item: `Acceso Remoto`,
-      quantity: 1,
-      unitPrice: selectedRemoteAccess.price,
-      total: selectedRemoteAccess.price
-    });
-  }
-
   // DVR/NVR
   const selectedDvr = dvrOptions.find(dvr => dvr.id === formData.hasDvr);
   if (selectedDvr && selectedDvr.price) {
@@ -227,21 +225,32 @@ export const calculateQuote = (formData: QuoteFormData): {
     });
   }
 
-  // Cabling
-  const selectedCabling = cablingOptions.find(cab => cab.id === formData.needsCabling);
-  if (selectedCabling && selectedCabling.price && formData.needsCabling === 'yes' && formData.cableLength) {
-    const cablingCost = selectedCabling.price * formData.cableLength;
+  // Installation Service
+  const selectedInstallation = installationServiceOptions.find(inst => inst.id === formData.installationService);
+  if (selectedInstallation && selectedInstallation.price) {
+    total += selectedInstallation.price;
+    details.push({
+      item: selectedInstallation.name,
+      quantity: 1,
+      unitPrice: selectedInstallation.price,
+      total: selectedInstallation.price
+    });
+  }
+
+  // Cabling (if installation service requires it)
+  if ((formData.installationService === 'complete' || formData.installationService === 'accessories') && formData.cableLength) {
+    const cablingCost = 80 * formData.cableLength; // 80 pesos per meter
     total += cablingCost;
     details.push({
       item: `Cableado (${formData.cableLength} metros)`,
       quantity: formData.cableLength,
-      unitPrice: selectedCabling.price,
+      unitPrice: 80,
       total: cablingCost
     });
   }
 
   // Storage
-  const selectedStorage = storageOptions.find(storage => storage.id === formData.storage);
+  const selectedStorage = storageOptionsSimplified.find(storage => storage.id === formData.storage);
   if (selectedStorage && selectedStorage.price) {
     total += selectedStorage.price;
     details.push({
@@ -252,15 +261,15 @@ export const calculateQuote = (formData: QuoteFormData): {
     });
   }
 
-  // Installation service fee
-  if (formData.needsCabling === 'yes') {
-    const installationFee = 500;
-    total += installationFee;
+  // Remote Access
+  const selectedRemoteAccess = remoteAccessOptions.find(acc => acc.id === formData.remoteAccess);
+  if (selectedRemoteAccess && selectedRemoteAccess.price) {
+    total += selectedRemoteAccess.price;
     details.push({
-      item: 'Servicio de instalación',
+      item: `Acceso Remoto`,
       quantity: 1,
-      unitPrice: installationFee,
-      total: installationFee
+      unitPrice: selectedRemoteAccess.price,
+      total: selectedRemoteAccess.price
     });
   }
 
