@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ import {
 
 const QuotationWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const cotizadorRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState<QuoteFormData>({
     cameraCount: 1,
     cameraType: '',
@@ -34,29 +35,52 @@ const QuotationWizard = () => {
     needsCabling: '',
     cableLength: 10,
     storage: '',
-    location: ''
+    location: '',
+    // New fields for improved flow
+    interiorCount: 0,
+    exteriorCount: 0,
+    nightVisionType: '',
+    technologyType: '',
+    physicalType: ''
   });
   
   const [quotationResult, setQuotationResult] = useState<ReturnType<typeof calculateQuote> | null>(null);
   
   const steps = [
-    'Cantidad',
-    'Tipo',
+    'Ubicación',
+    'Visión Nocturna', 
+    'Tecnología',
+    'Tipo Físico',
     'Resolución',
-    'Instalación',
     'Grabación',
     'Acceso Remoto',
     'DVR/NVR',
     'Cableado',
     'Almacenamiento',
-    'Ubicación',
+    'Datos',
     'Resultado'
   ];
+
+  const scrollToCotizador = () => {
+    if (cotizadorRef.current) {
+      cotizadorRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center'
+      });
+    }
+  };
+  
+  const handleStepClick = (stepIndex: number) => {
+    if (stepIndex + 1 <= currentStep || stepIndex + 1 < currentStep) {
+      setCurrentStep(stepIndex + 1);
+      setTimeout(scrollToCotizador, 100);
+    }
+  };
   
   const handleNextStep = () => {
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(scrollToCotizador, 100);
     }
     
     if (currentStep === steps.length - 1) {
@@ -69,7 +93,7 @@ const QuotationWizard = () => {
   const handlePrevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(scrollToCotizador, 100);
     }
   };
   
@@ -83,15 +107,34 @@ const QuotationWizard = () => {
       currency: 'MXN'
     }).format(price);
   };
+
+  const getCostIndicator = (basePrice: number) => {
+    if (basePrice <= 1200) return '$';
+    if (basePrice <= 1800) return '$$';
+    if (basePrice <= 2500) return '$$$';
+    return '$$$$';
+  };
+
+  const getResolutionCostIndicator = (id: string) => {
+    switch (id) {
+      case '2mp': return '$';
+      case '4mp': return '$$';
+      case '5mp': return '$$$';
+      case '8mp': return '$$$$';
+      default: return '$';
+    }
+  };
   
   const generateWhatsAppText = () => {
     if (!quotationResult) return '';
     
     let message = `Hola, me interesa cotizar un sistema de cámaras con las siguientes características: `;
-    message += `\n- Cantidad de cámaras: ${formData.cameraCount}`;
-    message += `\n- Tipo: ${cameraTypes.find(type => type.id === formData.cameraType)?.name || formData.cameraType}`;
+    message += `\n- Cámaras interiores: ${formData.interiorCount}`;
+    message += `\n- Cámaras exteriores: ${formData.exteriorCount}`;
+    message += `\n- Visión nocturna: ${formData.nightVisionType}`;
+    message += `\n- Tecnología: ${formData.technologyType}`;
+    message += `\n- Tipo físico: ${formData.physicalType}`;
     message += `\n- Resolución: ${resolutions.find(res => res.id === formData.resolution)?.name || formData.resolution}`;
-    message += `\n- Instalación: ${installationTypes.find(inst => inst.id === formData.installationType)?.name || formData.installationType}`;
     message += `\n- Grabación: ${formData.recording === 'yes' ? 'Sí' : 'No'}`;
     message += `\n- Acceso Remoto: ${formData.remoteAccess === 'yes' ? 'Sí' : 'No'}`;
     message += `\n- DVR/NVR: ${formData.hasDvr === 'yes' ? 'Ya cuento con uno' : 'Necesito uno'}`;
@@ -105,63 +148,179 @@ const QuotationWizard = () => {
   
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1: // Cantidad
+      case 1: // Ubicación de cámaras
         return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">¿Cuántas cámaras necesitas?</h3>
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
-                onClick={() => updateFormField('cameraCount', Math.max(1, formData.cameraCount - 1))}
-                className="text-lg h-10 w-10 p-0"
-              >
-                -
-              </Button>
-              <span className="text-2xl font-bold w-10 text-center">{formData.cameraCount}</span>
-              <Button 
-                variant="outline" 
-                onClick={() => updateFormField('cameraCount', formData.cameraCount + 1)}
-                className="text-lg h-10 w-10 p-0"
-              >
-                +
-              </Button>
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold">¿Dónde necesitas las cámaras?</h3>
+            <p className="text-gray-400">Selecciona la cantidad para cada ubicación</p>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-900 rounded-lg">
+                <h4 className="font-bold mb-2">Cámaras para Interior</h4>
+                <p className="text-sm text-gray-400 mb-3">Espacios cerrados como oficinas, salas, pasillos internos</p>
+                <div className="flex items-center space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => updateFormField('interiorCount', Math.max(0, formData.interiorCount - 1))}
+                    className="text-lg h-10 w-10 p-0"
+                  >
+                    -
+                  </Button>
+                  <span className="text-2xl font-bold w-10 text-center">{formData.interiorCount}</span>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => updateFormField('interiorCount', formData.interiorCount + 1)}
+                    className="text-lg h-10 w-10 p-0"
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-900 rounded-lg">
+                <h4 className="font-bold mb-2">Cámaras para Exterior</h4>
+                <p className="text-sm text-gray-400 mb-3">Espacios al aire libre como entradas, patios, estacionamientos</p>
+                <div className="flex items-center space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => updateFormField('exteriorCount', Math.max(0, formData.exteriorCount - 1))}
+                    className="text-lg h-10 w-10 p-0"
+                  >
+                    -
+                  </Button>
+                  <span className="text-2xl font-bold w-10 text-center">{formData.exteriorCount}</span>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => updateFormField('exteriorCount', formData.exteriorCount + 1)}
+                    className="text-lg h-10 w-10 p-0"
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         );
-        
-      case 2: // Tipo
+
+      case 2: // Visión Nocturna
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Selecciona el tipo de cámaras</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {cameraTypes.map(type => (
+            <h3 className="text-xl font-bold">Tipo de visión nocturna</h3>
+            <p className="text-gray-400">¿Cómo necesitas ver durante la noche?</p>
+            <div className="grid grid-cols-1 gap-4">
+              {[
+                { id: 'none', name: 'Sin visión nocturna', desc: 'Solo funcionan con luz natural o artificial', cost: '$' },
+                { id: 'infrared', name: 'Con infrarrojos (IR)', desc: 'Ven en blanco y negro durante la noche', cost: '$$' },
+                { id: 'full-color', name: 'A todo color', desc: 'Mantienen los colores incluso en la oscuridad', cost: '$$$' }
+              ].map(option => (
                 <div 
-                  key={type.id}
-                  onClick={() => updateFormField('cameraType', type.id)}
+                  key={option.id}
+                  onClick={() => updateFormField('nightVisionType', option.id)}
                   className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    formData.cameraType === type.id 
+                    formData.nightVisionType === option.id 
                       ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{type.name}</h4>
-                    {formData.cameraType === type.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.nightVisionType === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
                   </div>
-                  <p className="text-gray-400 text-sm mt-2">{type.description}</p>
-                  <p className="mt-2 font-bold text-xpertech-cyan">{formatPrice(type.basePrice)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 3: // Tecnología
+        return (
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">Tipo de tecnología</h3>
+            <p className="text-gray-400">Elige la tecnología que mejor se adapte a tu presupuesto</p>
+            <div className="grid grid-cols-1 gap-4">
+              {[
+                { id: 'analog', name: 'Analógica', desc: 'Más económica, calidad básica, instalación sencilla', cost: '$' },
+                { id: 'ip', name: 'IP Digital', desc: 'Más moderna, mejor calidad, mayor flexibilidad y funciones', cost: '$$' }
+              ].map(option => (
+                <div 
+                  key={option.id}
+                  onClick={() => updateFormField('technologyType', option.id)}
+                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
+                    formData.technologyType === option.id 
+                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
+                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.technologyType === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 4: // Tipo Físico
+        return (
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">Tipo físico de cámara</h3>
+            <p className="text-gray-400">Selecciona el diseño que mejor se adapte al lugar de instalación</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { id: 'bullet', name: 'Bullet', desc: 'Forma cilíndrica, ideal para exteriores, fácil instalación', cost: '$$' },
+                { id: 'dome', name: 'Domo', desc: 'Diseño discreto y elegante, perfecto para interiores', cost: '$$' },
+                { id: 'ptz', name: 'PTZ', desc: 'Se mueve y hace zoom, cubre áreas grandes', cost: '$$$$' },
+                { id: 'wifi', name: 'WiFi', desc: 'Sin cables, instalación rápida y sencilla', cost: '$$$' }
+              ].map(option => (
+                <div 
+                  key={option.id}
+                  onClick={() => updateFormField('physicalType', option.id)}
+                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
+                    formData.physicalType === option.id 
+                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
+                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.physicalType === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         );
         
-      case 3: // Resolución
+      case 5: // Resolución
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Selecciona la resolución deseada</h3>
+            <h3 className="text-xl font-bold">Resolución de imagen</h3>
+            <p className="text-gray-400">Mayor resolución = imagen más nítida y detallada</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {resolutions.map(res => (
                 <div 
@@ -173,60 +332,39 @@ const QuotationWizard = () => {
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{res.name}</h4>
-                    {formData.resolution === res.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{res.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">
+                        {res.id === '2mp' && 'Calidad básica, suficiente para uso general'}
+                        {res.id === '4mp' && 'Buena calidad, recomendada para la mayoría de casos'}
+                        {res.id === '5mp' && 'Alta calidad, excelente para detalles importantes'}
+                        {res.id === '8mp' && 'Máxima calidad 4K, ideal para identificación precisa'}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{getResolutionCostIndicator(res.id)}</span>
+                      {formData.resolution === res.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
                   </div>
-                  {res.price !== undefined && res.price > 0 && (
-                    <p className="mt-2 text-xpertech-cyan">+ {formatPrice(res.price)}</p>
-                  )}
-                  {res.price === 0 && (
-                    <p className="mt-2 text-xpertech-cyan">Incluido en el precio base</p>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         );
         
-      case 4: // Instalación
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">¿Dónde se instalarán las cámaras?</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {installationTypes.map(type => (
-                <div 
-                  key={type.id}
-                  onClick={() => updateFormField('installationType', type.id)}
-                  className={`cursor-pointer p-4 rounded-lg border transition-all ${
-                    formData.installationType === type.id 
-                      ? 'border-xpertech-yellow bg-xpertech-yellow/10' 
-                      : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
-                  }`}
-                >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{type.name}</h4>
-                    {formData.installationType === type.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
-                  </div>
-                  {type.price && (
-                    <p className="mt-2 text-xpertech-cyan">+ {formatPrice(type.price)} por cámara</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-        
-      case 5: // Grabación
+      case 6: // Grabación
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">¿Requieres grabación?</h3>
+            <p className="text-gray-400">La grabación te permite revisar eventos pasados</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {recordingOptions.map(option => (
+              {[
+                { id: 'yes', name: 'Sí, necesito grabación', desc: 'Podrás revisar lo que pasó en cualquier momento', cost: '$$' },
+                { id: 'no', name: 'No, solo monitoreo en vivo', desc: 'Solo ver las cámaras en tiempo real', cost: '$' }
+              ].map(option => (
                 <div 
                   key={option.id}
                   onClick={() => updateFormField('recording', option.id)}
@@ -236,28 +374,34 @@ const QuotationWizard = () => {
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{option.name}</h4>
-                    {formData.recording === option.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.recording === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
                   </div>
-                  {option.price && option.price > 0 && (
-                    <p className="mt-2 text-xpertech-cyan">+ {formatPrice(option.price)}</p>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         );
         
-      case 6: // Acceso Remoto
+      case 7: // Acceso Remoto
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">¿Necesitas acceso remoto?</h3>
-            <p className="text-gray-400">Podrás ver tus cámaras desde tu celular o computadora en cualquier parte del mundo.</p>
+            <p className="text-gray-400">Ve tus cámaras desde tu celular estés donde estés</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {remoteAccessOptions.map(option => (
+              {[
+                { id: 'yes', name: 'Sí, acceso desde mi celular', desc: 'App móvil para ver las cámaras desde cualquier lugar', cost: '$$' },
+                { id: 'no', name: 'No, solo en el lugar', desc: 'Solo ver las cámaras en el monitor local', cost: '$' }
+              ].map(option => (
                 <div 
                   key={option.id}
                   onClick={() => updateFormField('remoteAccess', option.id)}
@@ -267,28 +411,34 @@ const QuotationWizard = () => {
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{option.name}</h4>
-                    {formData.remoteAccess === option.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.remoteAccess === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
                   </div>
-                  {option.price && option.price > 0 && (
-                    <p className="mt-2 text-xpertech-cyan">+ {formatPrice(option.price)}</p>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         );
         
-      case 7: // DVR/NVR
+      case 8: // DVR/NVR
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">¿Ya cuentas con DVR/NVR?</h3>
-            <p className="text-gray-400">El DVR/NVR es el dispositivo que grabará y controlará tus cámaras.</p>
+            <h3 className="text-xl font-bold">¿Ya tienes DVR/NVR?</h3>
+            <p className="text-gray-400">Es el equipo que controla y graba las cámaras</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dvrOptions.map(option => (
+              {[
+                { id: 'yes', name: 'Sí, ya tengo uno', desc: 'Usaremos tu equipo actual (si es compatible)', cost: '$' },
+                { id: 'no', name: 'No, necesito uno nuevo', desc: 'Incluiremos un DVR/NVR nuevo en la cotización', cost: '$$$' }
+              ].map(option => (
                 <div 
                   key={option.id}
                   onClick={() => updateFormField('hasDvr', option.id)}
@@ -298,27 +448,34 @@ const QuotationWizard = () => {
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{option.name}</h4>
-                    {formData.hasDvr === option.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.hasDvr === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
                   </div>
-                  {option.price && option.price > 0 && (
-                    <p className="mt-2 text-xpertech-cyan">+ {formatPrice(option.price)}</p>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         );
         
-      case 8: // Cableado
+      case 9: // Cableado
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-bold">¿Necesitas cableado y montaje?</h3>
+            <p className="text-gray-400">Instalación completa con cables y soportes</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              {cablingOptions.map(option => (
+              {[
+                { id: 'yes', name: 'Sí, instalación completa', desc: 'Incluye cables, conectores y montaje profesional', cost: '$$' },
+                { id: 'no', name: 'No, yo me encargo', desc: 'Solo necesito las cámaras y equipos', cost: '$' }
+              ].map(option => (
                 <div 
                   key={option.id}
                   onClick={() => updateFormField('needsCabling', option.id)}
@@ -328,22 +485,25 @@ const QuotationWizard = () => {
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{option.name}</h4>
-                    {formData.needsCabling === option.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">{option.desc}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
+                      {formData.needsCabling === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
                   </div>
-                  {option.price && option.price > 0 && (
-                    <p className="mt-2 text-xpertech-cyan">+ {formatPrice(option.price)} / metro</p>
-                  )}
                 </div>
               ))}
             </div>
             
             {formData.needsCabling === 'yes' && (
               <div className="space-y-2">
-                <Label htmlFor="cableLength">Longitud estimada en metros:</Label>
+                <Label htmlFor="cableLength">Distancia aproximada total de cableado:</Label>
                 <div className="flex items-center space-x-4">
                   <Button 
                     variant="outline" 
@@ -366,10 +526,11 @@ const QuotationWizard = () => {
           </div>
         );
         
-      case 9: // Almacenamiento
+      case 10: // Almacenamiento
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Tipo de almacenamiento necesario</h3>
+            <h3 className="text-xl font-bold">Almacenamiento para grabaciones</h3>
+            <p className="text-gray-400">¿Dónde quieres guardar las grabaciones?</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {storageOptions.map(option => (
                 <div 
@@ -381,27 +542,36 @@ const QuotationWizard = () => {
                       : 'border-gray-700 bg-gray-900 hover:bg-gray-800'
                   }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-bold">{option.name}</h4>
-                    {formData.storage === option.id && (
-                      <Check className="text-xpertech-yellow" />
-                    )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold">{option.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">
+                        {option.id === 'none' && 'Solo monitoreo, sin grabaciones'}
+                        {option.id === '1tb' && 'Almacena aproximadamente 1-2 semanas'}
+                        {option.id === '2tb' && 'Almacena aproximadamente 3-4 semanas'}
+                        {option.id === '4tb' && 'Almacena aproximadamente 2-3 meses'}
+                        {option.id === 'cloud' && 'Respaldo en la nube, acceso desde cualquier lugar'}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xpertech-cyan font-bold">{getCostIndicator(option.price || 0)}</span>
+                      {formData.storage === option.id && (
+                        <Check className="text-xpertech-yellow" />
+                      )}
+                    </div>
                   </div>
-                  {option.price && option.price > 0 && (
-                    <p className="mt-2 text-xpertech-cyan">+ {formatPrice(option.price)}</p>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         );
         
-      case 10: // Ubicación
+      case 11: // Ubicación
         return (
           <div className="space-y-4">
-            <h3 className="text-xl font-bold">Ubicación aproximada</h3>
+            <h3 className="text-xl font-bold">Datos de contacto</h3>
             <div className="space-y-2">
-              <Label htmlFor="location">Indícanos la colonia o zona de instalación:</Label>
+              <Label htmlFor="location">Ubicación de instalación:</Label>
               <Input 
                 id="location" 
                 value={formData.location} 
@@ -409,71 +579,44 @@ const QuotationWizard = () => {
                 placeholder="Ej: Centro, Tapachula" 
                 className="bg-gray-900 border-gray-700 focus:border-xpertech-cyan" 
               />
-              <p className="text-gray-400 text-sm">Esta información nos ayuda a estimar costos adicionales por distancia si fuera necesario.</p>
+              <p className="text-gray-400 text-sm">Esta información nos ayuda a coordinar la instalación.</p>
             </div>
           </div>
         );
         
-      case 11: // Resultado
+      case 12: // Resultado
         return quotationResult ? (
           <div className="space-y-6">
             <h3 className="text-2xl font-bold text-center text-xpertech-yellow">Tu Cotización Personalizada</h3>
             
             <div className="p-4 bg-gray-900 rounded-lg">
-              <h4 className="font-bold text-lg mb-2">Detalles del Sistema</h4>
+              <h4 className="font-bold text-lg mb-2">Resumen del Sistema</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p>Cantidad de cámaras: <span className="font-bold">{formData.cameraCount}</span></p>
-                  <p>Tipo: <span className="font-bold">{cameraTypes.find(t => t.id === formData.cameraType)?.name}</span></p>
+                  <p>Cámaras interiores: <span className="font-bold">{formData.interiorCount}</span></p>
+                  <p>Cámaras exteriores: <span className="font-bold">{formData.exteriorCount}</span></p>
+                  <p>Visión nocturna: <span className="font-bold">{formData.nightVisionType}</span></p>
+                  <p>Tecnología: <span className="font-bold">{formData.technologyType}</span></p>
+                  <p>Tipo físico: <span className="font-bold">{formData.physicalType}</span></p>
                   <p>Resolución: <span className="font-bold">{resolutions.find(r => r.id === formData.resolution)?.name}</span></p>
-                  <p>Instalación: <span className="font-bold">{installationTypes.find(i => i.id === formData.installationType)?.name}</span></p>
-                  <p>Grabación: <span className="font-bold">{formData.recording === 'yes' ? 'Sí' : 'No'}</span></p>
                 </div>
                 <div>
+                  <p>Grabación: <span className="font-bold">{formData.recording === 'yes' ? 'Sí' : 'No'}</span></p>
                   <p>Acceso Remoto: <span className="font-bold">{formData.remoteAccess === 'yes' ? 'Sí' : 'No'}</span></p>
                   <p>DVR/NVR: <span className="font-bold">{formData.hasDvr === 'yes' ? 'Incluido' : 'Nuevo (incluido)'}</span></p>
-                  <p>Cableado: <span className="font-bold">{formData.needsCabling === 'yes' ? `Sí (${formData.cableLength} metros)` : 'No'}</span></p>
+                  <p>Instalación: <span className="font-bold">{formData.needsCabling === 'yes' ? `Completa (${formData.cableLength}m)` : 'Solo equipos'}</span></p>
                   <p>Almacenamiento: <span className="font-bold">{storageOptions.find(s => s.id === formData.storage)?.name}</span></p>
                   <p>Ubicación: <span className="font-bold">{formData.location || 'No especificada'}</span></p>
                 </div>
               </div>
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead className="bg-gray-900">
-                  <tr>
-                    <th className="p-2 text-left">Concepto</th>
-                    <th className="p-2 text-right">Cantidad</th>
-                    <th className="p-2 text-right">Precio Unitario</th>
-                    <th className="p-2 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quotationResult.details.map((detail, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-black' : 'bg-gray-900/50'}>
-                      <td className="p-2 border-t border-gray-800">{detail.item}</td>
-                      <td className="p-2 border-t border-gray-800 text-right">{detail.quantity}</td>
-                      <td className="p-2 border-t border-gray-800 text-right">{formatPrice(detail.unitPrice)}</td>
-                      <td className="p-2 border-t border-gray-800 text-right">{formatPrice(detail.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-gray-900">
-                    <td colSpan={3} className="p-2 font-bold text-right">Subtotal:</td>
-                    <td className="p-2 font-bold text-right">{formatPrice(quotationResult.subtotal)}</td>
-                  </tr>
-                  <tr className="bg-xpertech-yellow/10">
-                    <td colSpan={3} className="p-2 font-bold text-right text-xpertech-yellow">Total:</td>
-                    <td className="p-2 font-bold text-right text-xpertech-yellow">{formatPrice(quotationResult.total)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            
             <div className="text-center pt-4">
-              <p className="mb-2 text-gray-400">* Esta cotización es un estimado. Para un presupuesto detallado, contacta con nuestro equipo:</p>
+              <div className="mb-4 p-6 bg-xpertech-yellow/10 rounded-lg border border-xpertech-yellow/20">
+                <p className="text-2xl font-bold text-xpertech-yellow">{formatPrice(quotationResult.total)}</p>
+                <p className="text-gray-400 mt-2">Cotización estimada</p>
+              </div>
+              <p className="mb-4 text-gray-400">* Esta cotización es un estimado. Para un presupuesto detallado, contacta con nuestro equipo:</p>
               <Button 
                 className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg"
                 asChild
@@ -483,7 +626,7 @@ const QuotationWizard = () => {
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  Cotiza por WhatsApp
+                  Solicitar Cotización por WhatsApp
                 </a>
               </Button>
             </div>
@@ -499,25 +642,27 @@ const QuotationWizard = () => {
   
   const isStepValid = () => {
     switch (currentStep) {
-      case 1: // Cantidad
-        return formData.cameraCount > 0;
-      case 2: // Tipo
-        return !!formData.cameraType;
-      case 3: // Resolución
+      case 1: // Ubicación
+        return formData.interiorCount > 0 || formData.exteriorCount > 0;
+      case 2: // Visión Nocturna
+        return !!formData.nightVisionType;
+      case 3: // Tecnología
+        return !!formData.technologyType;
+      case 4: // Tipo Físico
+        return !!formData.physicalType;
+      case 5: // Resolución
         return !!formData.resolution;
-      case 4: // Instalación
-        return !!formData.installationType;
-      case 5: // Grabación
+      case 6: // Grabación
         return !!formData.recording;
-      case 6: // Acceso Remoto
+      case 7: // Acceso Remoto
         return !!formData.remoteAccess;
-      case 7: // DVR/NVR
+      case 8: // DVR/NVR
         return !!formData.hasDvr;
-      case 8: // Cableado
+      case 9: // Cableado
         return !!formData.needsCabling;
-      case 9: // Almacenamiento
+      case 10: // Almacenamiento
         return !!formData.storage;
-      case 10: // Ubicación
+      case 11: // Ubicación
         return true; // Location is optional
       default:
         return true;
@@ -539,12 +684,13 @@ const QuotationWizard = () => {
             {steps.map((step, index) => (
               <div 
                 key={index}
-                className={`px-4 py-2 text-sm ${
+                onClick={() => handleStepClick(index)}
+                className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
                   currentStep > index + 1
-                    ? 'bg-xpertech-cyan/20 text-white' 
+                    ? 'bg-xpertech-cyan/20 text-white hover:bg-xpertech-cyan/30' 
                     : currentStep === index + 1
                       ? 'bg-xpertech-yellow/20 text-xpertech-yellow' 
-                      : 'bg-gray-900 text-gray-500'
+                      : 'bg-gray-900 text-gray-500 hover:bg-gray-800'
                 }`}
               >
                 {index + 1}. {step}
@@ -557,7 +703,7 @@ const QuotationWizard = () => {
           </div>
         </div>
         
-        <Card className="bg-black/50 border border-gray-800 p-6 md:p-8 max-w-3xl mx-auto">
+        <Card ref={cotizadorRef} className="bg-black/50 border border-gray-800 p-6 md:p-8 max-w-3xl mx-auto">
           {renderStepContent()}
           
           <div className="mt-8 flex justify-between">

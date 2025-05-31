@@ -99,6 +99,12 @@ export interface QuoteFormData {
   cableLength?: number;
   storage: string;
   location: string;
+  // New fields for improved flow
+  interiorCount: number;
+  exteriorCount: number;
+  nightVisionType: string;
+  technologyType: string;
+  physicalType: string;
 }
 
 export const calculateQuote = (formData: QuoteFormData): { 
@@ -109,41 +115,80 @@ export const calculateQuote = (formData: QuoteFormData): {
   let total = 0;
   const details: { item: string; quantity: number; unitPrice: number; total: number }[] = [];
 
-  // Camera cost
-  const selectedCameraType = cameraTypes.find(type => type.id === formData.cameraType);
-  if (selectedCameraType) {
-    const cameraPrice = selectedCameraType.basePrice;
-    total += cameraPrice * formData.cameraCount;
+  // Calculate total cameras
+  const totalCameras = formData.interiorCount + formData.exteriorCount;
+
+  // Base camera price (using a default base price)
+  let baseCameraPrice = 1200;
+  
+  // Adjust price based on night vision type
+  if (formData.nightVisionType === 'infrared') {
+    baseCameraPrice += 200;
+  } else if (formData.nightVisionType === 'full-color') {
+    baseCameraPrice += 600;
+  }
+
+  // Adjust price based on technology type
+  if (formData.technologyType === 'ip') {
+    baseCameraPrice += 400;
+  }
+
+  // Adjust price based on physical type
+  if (formData.physicalType === 'ptz') {
+    baseCameraPrice += 2300;
+  } else if (formData.physicalType === 'wifi') {
+    baseCameraPrice += 400;
+  } else if (formData.physicalType === 'dome') {
+    baseCameraPrice += 200;
+  }
+
+  if (totalCameras > 0) {
+    total += baseCameraPrice * totalCameras;
     details.push({
-      item: `Cámara ${selectedCameraType.name}`,
-      quantity: formData.cameraCount,
-      unitPrice: cameraPrice,
-      total: cameraPrice * formData.cameraCount
+      item: `Cámaras (${formData.interiorCount} interior, ${formData.exteriorCount} exterior)`,
+      quantity: totalCameras,
+      unitPrice: baseCameraPrice,
+      total: baseCameraPrice * totalCameras
     });
   }
 
   // Resolution
   const selectedResolution = resolutions.find(res => res.id === formData.resolution);
   if (selectedResolution && selectedResolution.price) {
-    total += selectedResolution.price * formData.cameraCount;
+    total += selectedResolution.price * totalCameras;
     details.push({
       item: `Resolución ${selectedResolution.name}`,
-      quantity: formData.cameraCount,
+      quantity: totalCameras,
       unitPrice: selectedResolution.price,
-      total: selectedResolution.price * formData.cameraCount
+      total: selectedResolution.price * totalCameras
     });
   }
 
-  // Installation
-  const selectedInstallation = installationTypes.find(inst => inst.id === formData.installationType);
-  if (selectedInstallation && selectedInstallation.price) {
-    total += selectedInstallation.price * formData.cameraCount;
-    details.push({
-      item: `Instalación ${selectedInstallation.name}`,
-      quantity: formData.cameraCount,
-      unitPrice: selectedInstallation.price,
-      total: selectedInstallation.price * formData.cameraCount
-    });
+  // Installation (interior vs exterior)
+  if (formData.interiorCount > 0) {
+    const interiorInstallation = installationTypes.find(inst => inst.id === 'interior');
+    if (interiorInstallation && interiorInstallation.price) {
+      total += interiorInstallation.price * formData.interiorCount;
+      details.push({
+        item: `Instalación Interior`,
+        quantity: formData.interiorCount,
+        unitPrice: interiorInstallation.price,
+        total: interiorInstallation.price * formData.interiorCount
+      });
+    }
+  }
+
+  if (formData.exteriorCount > 0) {
+    const exteriorInstallation = installationTypes.find(inst => inst.id === 'exterior');
+    if (exteriorInstallation && exteriorInstallation.price) {
+      total += exteriorInstallation.price * formData.exteriorCount;
+      details.push({
+        item: `Instalación Exterior`,
+        quantity: formData.exteriorCount,
+        unitPrice: exteriorInstallation.price,
+        total: exteriorInstallation.price * formData.exteriorCount
+      });
+    }
   }
 
   // Recording
@@ -208,14 +253,16 @@ export const calculateQuote = (formData: QuoteFormData): {
   }
 
   // Installation service fee
-  const installationFee = 500;
-  total += installationFee;
-  details.push({
-    item: 'Servicio de instalación',
-    quantity: 1,
-    unitPrice: installationFee,
-    total: installationFee
-  });
+  if (formData.needsCabling === 'yes') {
+    const installationFee = 500;
+    total += installationFee;
+    details.push({
+      item: 'Servicio de instalación',
+      quantity: 1,
+      unitPrice: installationFee,
+      total: installationFee
+    });
+  }
 
   const subtotal = total;
   
