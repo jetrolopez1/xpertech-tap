@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,6 +17,7 @@ import {
   dvrOptions,
   installationServiceOptions,
   storageOptionsSimplified,
+  monitorOptions,
   calculateQuote,
   QuoteFormData
 } from '@/data/cameraData';
@@ -109,9 +111,9 @@ const QuotationWizard = () => {
   };
 
   const getCostIndicator = (basePrice: number) => {
-    if (basePrice <= 1200) return '$';
-    if (basePrice <= 1800) return '$$';
-    if (basePrice <= 2500) return '$$$';
+    if (basePrice <= 0) return '';
+    if (basePrice <= 200) return '$';
+    if (basePrice <= 500) return '$$$';
     return '$$$$';
   };
 
@@ -128,13 +130,19 @@ const QuotationWizard = () => {
   const togglePhysicalType = (typeId: string) => {
     const currentTypes = formData.physicalTypes || [];
     if (typeId === 'wifi') {
-      // WiFi is exclusive
-      updateFormField('physicalTypes', [typeId]);
+      // WiFi can be toggled on/off
+      if (currentTypes.includes('wifi')) {
+        updateFormField('physicalTypes', []);
+      } else {
+        updateFormField('physicalTypes', ['wifi']);
+      }
     } else {
       if (currentTypes.includes(typeId)) {
+        // Remove the type if already selected
         updateFormField('physicalTypes', currentTypes.filter(t => t !== typeId));
       } else {
-        const newTypes = currentTypes.filter(t => t !== 'wifi'); // Remove wifi if adding others
+        // Add the type, removing wifi if present
+        const newTypes = currentTypes.filter(t => t !== 'wifi');
         updateFormField('physicalTypes', [...newTypes, typeId]);
       }
     }
@@ -199,7 +207,7 @@ const QuotationWizard = () => {
     message += `\n- Acceso Remoto: ${getSpanishValue('remoteAccess', formData.remoteAccess)}`;
     message += `\n- Monitor: ${getSpanishValue('needsMonitor', formData.needsMonitor)}`;
     if (formData.needsMonitor === 'yes' && formData.monitorSize) {
-      message += ` (${formData.monitorSize})`;
+      message += ` (${formData.monitorSize}")`;
     }
     message += `\n- DVR/NVR: ${getSpanishValue('hasDvr', formData.hasDvr)}`;
     message += `\n- Instalación: ${getSpanishValue('installationService', formData.installationService)}`;
@@ -572,7 +580,9 @@ const QuotationWizard = () => {
               <div className="flex justify-center mb-3">
                 <div className="flex space-x-4">
                   <Smartphone className="h-8 w-8 text-xpertech-cyan" />
-                  <Monitor className="h-8 w-8 border-2 border-xpertech-yellow rounded" />
+                  <div className="h-8 w-8 border-2 border-xpertech-yellow rounded flex items-center justify-center">
+                    <div className="h-4 w-6 bg-xpertech-yellow rounded-sm"></div>
+                  </div>
                 </div>
               </div>
               <h3 className="text-xl font-bold">¿Necesitas acceso remoto?</h3>
@@ -581,7 +591,7 @@ const QuotationWizard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { id: 'yes', name: 'Sí, acceso desde mi celular', desc: 'App móvil para ver las cámaras desde cualquier lugar con internet', cost: '$$', icon: <Smartphone className="h-5 w-5" /> },
-                { id: 'no', name: 'No, solo en el lugar', desc: 'Solo ver las cámaras en el monitor local del sistema', cost: '$', icon: <Monitor className="h-5 w-5" /> }
+                { id: 'no', name: 'No, solo en el lugar', desc: 'Solo ver las cámaras en el monitor local del sistema', cost: '$', icon: <div className="h-5 w-5 border border-current rounded flex items-center justify-center"><div className="h-2 w-3 bg-current rounded-sm"></div></div> }
               ].map(option => (
                 <div 
                   key={option.id}
@@ -617,7 +627,9 @@ const QuotationWizard = () => {
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <Monitor className="h-8 w-8 text-xpertech-cyan mx-auto mb-3" />
+              <div className="h-8 w-8 text-xpertech-cyan mx-auto mb-3 border-2 border-current rounded flex items-center justify-center">
+                <div className="h-4 w-6 bg-current rounded-sm"></div>
+              </div>
               <h3 className="text-xl font-bold">¿Necesitas un monitor?</h3>
               <p className="text-gray-400">Para visualizar las cámaras en el lugar</p>
             </div>
@@ -655,12 +667,7 @@ const QuotationWizard = () => {
               <div>
                 <h4 className="font-bold mb-3">Tamaño del monitor</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { id: '19', name: '19"', cost: '$' },
-                    { id: '21', name: '21"', cost: '$$' },
-                    { id: '24', name: '24"', cost: '$$$' },
-                    { id: '27', name: '27"', cost: '$$$$' }
-                  ].map(option => (
+                  {monitorOptions.map(option => (
                     <div 
                       key={option.id}
                       onClick={() => updateFormField('monitorSize', option.id)}
@@ -672,7 +679,7 @@ const QuotationWizard = () => {
                     >
                       <h5 className="font-bold">{option.name}</h5>
                       <div className="flex items-center justify-center space-x-2 mt-1">
-                        <span className="text-xpertech-cyan font-bold text-sm">{option.cost}</span>
+                        <span className="text-xpertech-cyan font-bold text-sm">{getCostIndicator(option.price || 0)}</span>
                         {formData.monitorSize === option.id && (
                           <Check className="text-xpertech-yellow h-4 w-4" />
                         )}
@@ -691,7 +698,11 @@ const QuotationWizard = () => {
             <h3 className="text-xl font-bold">¿Necesitas cableado, montaje o complementos?</h3>
             <p className="text-gray-400">Selecciona el nivel de servicio que necesitas</p>
             <div className="grid grid-cols-1 gap-4 mb-4">
-              {installationServiceOptions.map(option => (
+              {[
+                { id: 'complete', name: 'Instalación completa', description: 'Incluye cableado, montaje y configuración profesional', cost: '$$$' },
+                { id: 'accessories', name: 'Solo complementos', description: 'Conectores, alimentación y cable (sin instalación)', cost: '$' },
+                { id: 'none', name: 'Ninguno', description: 'Solo cámaras y equipo', cost: '' }
+              ].map(option => (
                 <div 
                   key={option.id}
                   onClick={() => updateFormField('installationService', option.id)}
@@ -707,7 +718,7 @@ const QuotationWizard = () => {
                       <p className="text-gray-400 text-sm mt-1">{option.description}</p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xpertech-cyan font-bold">{getCostIndicator(option.price || 0)}</span>
+                      <span className="text-xpertech-cyan font-bold">{option.cost}</span>
                       {formData.installationService === option.id && (
                         <Check className="text-xpertech-yellow" />
                       )}
@@ -775,11 +786,11 @@ const QuotationWizard = () => {
               <p className="text-gray-400">Tu sistema de videovigilancia personalizado</p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid lg:grid-cols-3 gap-6">
               {/* Resumen del Sistema */}
-              <div className="md:col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-4">
                 <h4 className="font-bold text-lg text-xpertech-cyan">📋 Resumen del Sistema</h4>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-400">Cámaras:</span>
@@ -827,7 +838,7 @@ const QuotationWizard = () => {
                     )}
                     <div className="flex justify-between">
                       <span className="text-gray-400">Almacenamiento:</span>
-                      <span className="font-medium">{storageOptionsSimplified.find(s => s.id === formData.storage)?.name || 'No seleccionado'}</span>
+                      <span className="font-medium">{storageOptionsSimplified.find(s => s.id === formData.storage)?.name || 'Ninguno'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Ubicación:</span>
@@ -863,7 +874,7 @@ const QuotationWizard = () => {
                   </Button>
                   
                   <p className="text-gray-400 text-sm mt-3">
-                    * Esta cotización es un estimado. Para un presupuesto detallado y visita técnica gratuita, contáctanos.
+                    Esta cotización es un estimado. Para un presupuesto detallado y real, sin compromisos, contáctenos.
                   </p>
                 </div>
               </div>
@@ -925,7 +936,7 @@ const QuotationWizard = () => {
         </div>
         
         <div className="flex justify-center mb-10">
-          <div className="hidden md:flex flex-wrap justify-center gap-2 max-w-6xl">
+          <div className="hidden md:flex flex-wrap justify-center gap-1 max-w-6xl">
             {steps.map((step, index) => (
               <div 
                 key={index}
@@ -948,7 +959,7 @@ const QuotationWizard = () => {
           </div>
         </div>
         
-        <Card ref={cotizadorRef} className="bg-black/50 border border-gray-800 p-6 md:p-8 max-w-4xl mx-auto">
+        <Card ref={cotizadorRef} className="bg-black/50 border border-gray-800 p-4 md:p-8 max-w-4xl mx-auto">
           {renderStepContent()}
           
           <div className="mt-8 flex justify-between">
@@ -958,6 +969,7 @@ const QuotationWizard = () => {
               disabled={currentStep === 1}
               className="border-gray-700 text-gray-300"
             >
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Anterior
             </Button>
             
@@ -975,6 +987,7 @@ const QuotationWizard = () => {
                 : currentStep === steps.length 
                   ? 'Finalizar' 
                   : 'Siguiente'}
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         </Card>
